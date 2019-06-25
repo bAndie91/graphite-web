@@ -1,0 +1,11 @@
+
+git clone https://github.com/graphite-project/graphite-web.git
+
+python setup.py build
+
+python setup.py install --prefix=/opt/graphite --install-lib=/opt/graphite/lib --install-scripts=/opt/graphite/bin --install-data=/opt/graphite
+
+virtualenv /opt/graphite
+
+http_proxy=http://localhost:84 pip install uwsgi
+http_proxy=http://localhost:84 pip install six
