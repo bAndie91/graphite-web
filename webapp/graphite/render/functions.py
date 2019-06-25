@@ -816,6 +816,101 @@ changed.params = [
 ]
 
 
+def linearFillNulls(requestContext, seriesList):
+  """
+  Takes one metric or a wildcard seriesList.
+  Fills null points to connect two data points.
+
+  Example:
+
+  .. code-block:: none
+
+    &target=linearFillNulls(Server01.connections.handled)
+
+  """
+  results = []
+  for series in seriesList:
+    newValues = []
+    lastvalue = None
+    lastgap = None
+    for slot, datapoint in enumerate(series):
+      newValues.append(datapoint)
+      if datapoint is None:
+        if lastgap is None:
+          lastgap = slot
+      else:
+        if lastgap is not None:
+          if lastvalue is not None:
+            steps = slot - lastgap + 1
+            delta = (datapoint - lastvalue) / steps
+            gapslot = 0
+            for fillpoint in range(lastgap, slot):
+              gapslot += 1
+              newValues[fillpoint] = lastvalue + gapslot * delta
+          lastgap = None
+        lastvalue = datapoint
+    newSeries = series.copy(name="linearFillNulls(%s)" % (series.name), values=newValues)
+    results.append(newSeries)
+  return results
+
+
+linearFillNulls.group = 'Transform'
+linearFillNulls.params = [
+  Param('seriesList', ParamTypes.seriesList, required=True),
+]
+
+
+def _removeRelative(requestContext, seriesList, function_name, relation):
+  results = []
+  for series in seriesList:
+    newValues = []
+    lastvalue = None
+    for slot, datapoint in enumerate(series):
+      newValues.append(datapoint)
+      if datapoint is not None:
+        if lastvalue is None:
+          lastvalue = datapoint
+        else:
+          if (relation == '<' and lastvalue < datapoint) or \
+             (relation == '>' and lastvalue > datapoint):
+            newValues[slot] = None
+          else:
+            lastvalue = datapoint
+    newSeries = series.copy(name="%s(%s)" % (function_name, series.name), values=newValues)
+    results.append(newSeries)
+  return results
+
+
+def removeDecreasing(requestContext, seriesList):
+  """
+  Takes one metric or a wildcard seriesList.
+  Removes datapoints which are less than the directly preceeding one.
+  """
+  import sys
+  return _removeRelative(requestContext, seriesList, sys._getframe().f_code.co_name, '>')
+
+
+removeDecreasing.group = 'Filter Data'
+removeDecreasing.params = [
+  Param('seriesList', ParamTypes.seriesList, required=True),
+]
+
+
+def removeIncreasing(requestContext, seriesList):
+  """
+  Takes one metric or a wildcard seriesList.
+  Removes datapoints which are more than the directly preceeding one.
+  """
+  import sys
+  return _removeRelative(requestContext, seriesList, sys._getframe().f_code.co_name, '<')
+
+
+removeIncreasing.group = 'Filter Data'
+removeIncreasing.params = [
+  Param('seriesList', ParamTypes.seriesList, required=True),
+]
+
+
 def asPercent(requestContext, seriesList, total=None, *nodes):
   """
 
@@ -5676,6 +5771,7 @@ SeriesFunctions = {
   'timeSlice': timeSlice,
   'timeStack': timeStack,
   'transformNull': transformNull,
+  'linearFillNulls': linearFillNulls,
 
   # Calculate functions
   'aggregateLine': aggregateLine,
@@ -5726,6 +5822,8 @@ SeriesFunctions = {
   'removeAboveValue': removeAboveValue,
   'removeBelowPercentile': removeBelowPercentile,
   'removeBelowValue': removeBelowValue,
+  'removeDecreasing': removeDecreasing,
+  'removeIncreasing': removeIncreasing,
 
   # Sorting functions
   'sortBy': sortBy,
