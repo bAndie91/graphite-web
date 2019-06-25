@@ -132,7 +132,7 @@ def find_view(request):
     raise
 
   log.info('find_view query=%s local_only=%s matches=%d' % (query, local_only, len(matches)))
-  matches.sort(key=lambda node: node.name)
+  matches.sort(key=lambda node: node.path)
   log.info("received remote find request: pattern=%s from=%s until=%s local_only=%s format=%s matches=%d" % (query, fromTime, untilTime, local_only, format, len(matches)))
 
   if format == 'treejson':
@@ -298,13 +298,15 @@ def tree_json(nodes, base_path, wildcards=False):
   results_leaf = []
   results_branch = []
   for node in nodes: #Now let's add the matching children
-    if node.name in found:
+    pathsuffixname = node.path[len(base_path):]
+    
+    if pathsuffixname in found:
       continue
 
-    found.add(node.name)
+    found.add(pathsuffixname)
     resultNode = {
-      'text' : unquote_plus(str(node.name)),
-      'id' : base_path + str(node.name),
+      'text' : unquote_plus(str(pathsuffixname)),
+      'id' : str(node.path),
     }
 
     if node.is_leaf:
