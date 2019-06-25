@@ -103,6 +103,10 @@ DEFAULT_XFILES_FACTOR = 0
 # https://docs.djangoproject.com/en/1.11/topics/logging/
 LOG_RENDERING_PERFORMANCE = False
 LOG_CACHE_PERFORMANCE = False
+LOG_SYSLOG = True
+LOG_SYSLOG_FACILITY = 'DAEMON'
+LOG_SYSLOG_IDENT = 'graphite-web'
+# Syslog obsolates these two:
 LOG_ROTATION = True
 LOG_ROTATION_COUNT = 1
 
@@ -328,7 +332,7 @@ if USE_REMOTE_USER_AUTHENTICATION or REMOTE_USER_BACKEND:
 if USE_LDAP_AUTH:
   AUTHENTICATION_BACKENDS.insert(0,'graphite.account.ldapBackend.LDAPBackend')
 
-if SECRET_KEY == 'UNSAFE_DEFAULT':
-  warn('SECRET_KEY is set to an unsafe default. This should be set in local_settings.py for better security')
+#if SECRET_KEY == 'UNSAFE_DEFAULT':
+#  warn('SECRET_KEY is set to an unsafe default. This should be set in local_settings.py for better security')
 
 USE_TZ = True

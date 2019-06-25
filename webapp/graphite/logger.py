@@ -27,8 +27,11 @@ try:
     from logging import FileHandler, StreamHandler
 except ImportError as ie:  # py2.6
     from logging.handlers import FileHandler, StreamHandler
+from logging.handlers import SysLogHandler
 from django.conf import settings
 
+logging.addLevelName(30,"rendering")
+logging.addLevelName(30,"cache")
 
 class GraphiteLogger:
   def __init__(self):
@@ -64,7 +67,18 @@ class GraphiteLogger:
     if level is not None:
         logger.setLevel(level)
     if activate:  # if want to log this one
-        if log_file_name == '-':
+        if settings.LOG_SYSLOG:
+            try:
+                ident = settings.LOG_SYSLOG_IDENT
+            except AttributeError:
+                ident = "graphite-web"
+            formatter = logging.Formatter(fmt='%s[%%(process)d]: %%(name)s: %%(message)s' % (ident,))
+            try:
+                facility = getattr(SysLogHandler, 'LOG_' + settings.LOG_SYSLOG_FACILITY)
+            except AttributeError:
+                facility = SysLogHandler.LOG_USER
+            handler = SysLogHandler(address="/dev/log", facility=facility)
+        elif log_file_name == '-':
             formatter = logging.Formatter(
                 fmt='[%(asctime)s.%(msecs)03d] %(name)s %(levelname)s %(message)s',
                 datefmt='%d/%b/%Y %H:%M:%S')
@@ -97,10 +111,10 @@ class GraphiteLogger:
     return self.exceptionLogger.exception(msg,**kwargs)
 
   def cache(self,msg,*args,**kwargs):
-    return self.cacheLogger.info(msg,*args,**kwargs)
+    return self.cacheLogger.log(30,msg,*args,**kwargs)
 
   def rendering(self,msg,*args,**kwargs):
-    return self.renderingLogger.info(msg,*args,**kwargs)
+    return self.renderingLogger.log(30,msg,*args,**kwargs)
 
 
 log = GraphiteLogger() # import-shared logger instance
